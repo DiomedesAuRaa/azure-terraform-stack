@@ -1,6 +1,5 @@
-resource "azurerm_resource_group" "aks_rg" {
-  name     = "my-terraform-azure"
-  location = "East US"
+data "azurerm_resource_group" "existing_rg" {
+  name = "my-terraform-azure"  
 }
 
 resource "azurerm_virtual_network" "aks_vnet" {
@@ -19,9 +18,9 @@ resource "azurerm_subnet" "aks_subnet" {
 
 resource "azurerm_kubernetes_cluster" "aks_cluster" {
   name                = "aks-cluster"
-  location            = azurerm_resource_group.aks_rg.location
-  resource_group_name = azurerm_resource_group.aks_rg.name
-  dns_prefix          = "akscluster"
+  location            = data.azurerm_resource_group.existing_rg.location
+  resource_group_name = data.azurerm_resource_group.existing_rg.name
+  dns_prefix          = "aks-cluster"
 
   default_node_pool {
     name            = "default"
