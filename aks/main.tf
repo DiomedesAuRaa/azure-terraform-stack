@@ -1,5 +1,5 @@
 resource "azurerm_resource_group" "aks_rg" {
-  name     = "aks-resource-group"
+  name     = "my-terraform-azure"
   location = "East US"
 }
 
@@ -24,10 +24,16 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   dns_prefix          = "akscluster"
 
   default_node_pool {
-    name       = "default"
-    node_count = 2
-    vm_size    = "Standard_DS2_v2"
+    name            = "default"
+    node_count      = 2
+    vm_size        = "Standard_DS2_v2"
     vnet_subnet_id = azurerm_subnet.aks_subnet.id
+  }
+
+  network_profile {
+    network_plugin = "kubenet"   # Keep kubenet
+    service_cidr   = "10.1.0.0/16"  # Ensure no overlap with subnet
+    dns_service_ip = "10.1.0.10"
   }
 
   identity {
