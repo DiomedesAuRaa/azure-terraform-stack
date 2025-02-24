@@ -9,6 +9,7 @@ Before using this Terraform configuration, ensure you have the following tools a
 - [Terraform](https://www.terraform.io/downloads.html) version `1.x` or higher
 - [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) version `2.x` or higher
 - An Azure account and appropriate permissions (such as Contributor role) in the Azure Subscription where the resources will be deployed
+- An Azure Resource Group where the resources will live. Could be done in TF but for a simple AKS build not necessary. 
 
 ### Azure Service Principal (SP) Credentials
 
