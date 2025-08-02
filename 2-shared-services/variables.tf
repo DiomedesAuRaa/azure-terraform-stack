@@ -33,3 +33,8 @@ variable "tags" {
     managed_by  = "terraform"
   }
 }
+
+variable "ops_team_email" {
+  description = "Email address for the operations team to receive alerts"
+  type        = string
+}

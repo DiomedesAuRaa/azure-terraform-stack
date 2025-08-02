@@ -20,16 +20,16 @@ aks_service_cidr        = "10.0.0.0/16"       # Kubernetes Services
 aks_dns_service_ip      = "10.0.0.10"         # Kubernetes DNS Service
 aks_docker_bridge_cidr  = "172.17.0.1/16"     # Docker Bridge Network
 
-# Default node pool configuration - Development sizing
+# Default node pool configuration - Minimal testing sizing
 aks_default_node_pool = {
   name                = "default"              # Node pool name
-  vm_size            = "Standard_DS2_v2"      # VM size for dev workloads
-  enable_auto_scaling = true                  # Enable cluster autoscaling
-  node_count         = 2                      # Initial node count
-  min_count          = 1                      # Minimum nodes when scaling down
-  max_count          = 3                      # Maximum nodes when scaling up
-  os_disk_size_gb    = 128                   # OS disk size
-  max_pods           = 30                     # Max pods per node
+  vm_size            = "Standard_B2s"         # Burstable VM size, cheaper for testing
+  enable_auto_scaling = false                 # Disable autoscaling for testing
+  node_count         = 1                      # Single node for testing
+  min_count          = 1                      # Not used when autoscaling is disabled
+  max_count          = 1                      # Not used when autoscaling is disabled
+  os_disk_size_gb    = 30                    # Minimum OS disk size
+  max_pods           = 30                     # Default pod count for testing
 }
 
 # Resource tagging

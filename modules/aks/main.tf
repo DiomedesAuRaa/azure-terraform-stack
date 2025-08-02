@@ -16,6 +16,13 @@ resource "azurerm_kubernetes_cluster" "main" {
     max_count          = var.default_node_pool.max_count
     os_disk_size_gb    = var.default_node_pool.os_disk_size_gb
     max_pods           = var.default_node_pool.max_pods
+    
+    enable_host_encryption = var.host_encryption_enabled
+    enable_node_public_ip = false
+    
+    upgrade_settings {
+      max_surge = "33%"  # Allow 33% additional nodes during upgrade
+    }
   }
 
   identity {
@@ -35,11 +42,45 @@ resource "azurerm_kubernetes_cluster" "main" {
   private_dns_zone_id    = var.private_dns_zone_id
 
   role_based_access_control_enabled = true
-  azure_policy_enabled            = true
+  azure_policy_enabled            = var.azure_policy_enabled
 
   oms_agent {
     log_analytics_workspace_id = var.log_analytics_workspace_id
   }
+
+  workload_identity_enabled = var.workload_identity_enabled
+  oidc_issuer_enabled      = var.oidc_issuer_enabled
+
+  maintenance_window {
+    dynamic "allowed" {
+      for_each = var.maintenance_window != null ? var.maintenance_window.allowed : []
+      content {
+        day   = allowed.value.day
+        hours = allowed.value.hours
+      }
+    }
+    dynamic "not_allowed" {
+      for_each = var.maintenance_window != null ? var.maintenance_window.not_allowed : []
+      content {
+        start = not_allowed.value.start
+        end   = not_allowed.value.end
+      }
+    }
+  }
+
+  auto_scaler_profile {
+    balance_similar_node_groups = true
+    expander                   = "random"
+    max_graceful_termination_sec = 600
+    scale_down_delay_after_add = "10m"
+    scale_down_delay_after_delete = "10s"
+    scale_down_delay_after_failure = "3m"
+    scan_interval              = "10s"
+    scale_down_unneeded       = "10m"
+    scale_down_utilization_threshold = "0.5"
+  }
+
+  automatic_channel_upgrade = var.automatic_channel_upgrade
 
   tags = var.tags
 }
@@ -78,29 +119,93 @@ resource "azurerm_role_assignment" "aks_kv" {
   principal_id         = azurerm_kubernetes_cluster.main.kubelet_identity[0].object_id
 }
 
-# Enable diagnostic settings
+# Monitor diagnostic setting for AKS (minimal configuration for testing)
 resource "azurerm_monitor_diagnostic_setting" "aks" {
   name                       = "${var.name}-diagnostics"
-  target_resource_id         = azurerm_kubernetes_cluster.main.id
+  target_resource_id        = azurerm_kubernetes_cluster.main.id
   log_analytics_workspace_id = var.log_analytics_workspace_id
 
-  enabled_log {
-    category = "kube-apiserver"
+  lifecycle {
+    ignore_changes = [
+      # Ignore changes to log categories as they may change with AKS versions
+      log,
+      metric
+    ]
+  }
+}
+
+# Monitoring alerts
+resource "azurerm_monitor_metric_alert" "node_cpu" {
+  count               = var.enable_monitoring ? 1 : 0
+  name                = "${var.name}-node-cpu-alert"
+  resource_group_name = var.resource_group_name
+  scopes              = [azurerm_kubernetes_cluster.main.id]
+  description         = "Alert when node CPU usage exceeds threshold"
+  severity            = 2
+  window_size         = "PT15M"
+  frequency           = "PT5M"
+
+  criteria {
+    metric_namespace = "Microsoft.ContainerService/managedClusters"
+    metric_name      = "node_cpu_usage_percentage"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = var.alert_settings.node_cpu_percentage_threshold
   }
 
-  enabled_log {
-    category = "kube-controller-manager"
+  action {
+    action_group_id = var.action_group_id
   }
 
-  enabled_log {
-    category = "kube-scheduler"
+  tags = var.tags
+}
+
+resource "azurerm_monitor_metric_alert" "node_memory" {
+  count               = var.enable_monitoring ? 1 : 0
+  name                = "${var.name}-node-memory-alert"
+  resource_group_name = var.resource_group_name
+  scopes              = [azurerm_kubernetes_cluster.main.id]
+  description         = "Alert when node memory usage exceeds threshold"
+  severity            = 2
+  window_size         = "PT15M"
+  frequency           = "PT5M"
+
+  criteria {
+    metric_namespace = "Microsoft.ContainerService/managedClusters"
+    metric_name      = "node_memory_working_set_percentage"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = var.alert_settings.node_memory_percentage_threshold
   }
 
-  enabled_log {
-    category = "kube-audit"
+  action {
+    action_group_id = var.action_group_id
   }
 
-  enabled_log {
-    category = "cluster-autoscaler"
+  tags = var.tags
+}
+
+resource "azurerm_monitor_metric_alert" "disk_usage" {
+  count               = var.enable_monitoring ? 1 : 0
+  name                = "${var.name}-disk-usage-alert"
+  resource_group_name = var.resource_group_name
+  scopes              = [azurerm_kubernetes_cluster.main.id]
+  description         = "Alert when disk usage exceeds threshold"
+  severity            = 2
+  window_size         = "PT15M"
+  frequency           = "PT5M"
+
+  criteria {
+    metric_namespace = "Microsoft.ContainerService/managedClusters"
+    metric_name      = "node_disk_usage_percentage"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = var.alert_settings.disk_usage_percentage_threshold
   }
+
+  action {
+    action_group_id = var.action_group_id
+  }
+
+  tags = var.tags
 }

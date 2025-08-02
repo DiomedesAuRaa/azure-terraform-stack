@@ -68,13 +68,14 @@ resource "azurerm_log_analytics_workspace" "hub" {
   tags = var.tags
 }
 
-# Azure Firewall
+# Azure Firewall - Conditional creation for cost saving in testing
 resource "azurerm_firewall" "hub" {
+  count               = var.enable_azure_firewall ? 1 : 0  # Only create if enabled
   name                = "${var.prefix}-hub-fw"
   location            = var.location
   resource_group_name = azurerm_resource_group.hub.name
-  sku_name           = "Standard"
-  sku_tier           = "Standard"
+  sku_name           = var.firewall_sku_name
+  sku_tier           = var.firewall_sku_tier
 
   ip_configuration {
     name                 = "configuration"
@@ -87,21 +88,10 @@ resource "azurerm_firewall" "hub" {
 
 # Enable Azure Firewall diagnostics
 resource "azurerm_monitor_diagnostic_setting" "fw_diagnostics" {
+  count                      = var.enable_azure_firewall ? 1 : 0
   name                       = "fw-diagnostics"
-  target_resource_id         = azurerm_firewall.hub.id
+  target_resource_id         = azurerm_firewall.hub[0].id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.hub.id
-
-  enabled_log {
-    category = "AzureFirewallApplicationRule"
-  }
-
-  enabled_log {
-    category = "AzureFirewallNetworkRule"
-  }
-
-  enabled_log {
-    category = "AzureFirewallDnsProxy"
-  }
 }
 
 # VPN Gateway
@@ -122,25 +112,9 @@ resource "azurerm_virtual_network_gateway" "hub" {
   tags = var.tags
 }
 
-# Enable VPN Gateway diagnostics
+# Enable VPN Gateway diagnostics (minimal configuration for testing)
 resource "azurerm_monitor_diagnostic_setting" "vpn_diagnostics" {
   name                       = "vpn-diagnostics"
   target_resource_id         = azurerm_virtual_network_gateway.hub.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.hub.id
-
-  enabled_log {
-    category = "GatewayDiagnosticLog"
-  }
-
-  enabled_log {
-    category = "TunnelDiagnosticLog"
-  }
-
-  enabled_log {
-    category = "RouteDiagnosticLog"
-  }
-
-  enabled_log {
-    category = "IKEDiagnosticLog"
-  }
 }

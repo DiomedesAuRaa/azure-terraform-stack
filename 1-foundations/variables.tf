@@ -91,3 +91,21 @@ variable "tags" {
     managed_by  = "terraform"
   }
 }
+
+variable "enable_azure_firewall" {
+  description = "Enable or disable Azure Firewall deployment (disable for cost saving in testing)"
+  type        = bool
+  default     = false
+}
+
+variable "firewall_sku_name" {
+  description = "SKU name of the Azure Firewall"
+  type        = string
+  default     = "Basic"  # Using Basic SKU for testing
+}
+
+variable "firewall_sku_tier" {
+  description = "SKU tier of the Azure Firewall"
+  type        = string
+  default     = "Basic"  # Using Basic tier for testing
+}

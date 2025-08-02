@@ -28,8 +28,8 @@ resource "azurerm_container_registry" "main" {
   name                = replace("${var.prefix}acr", "-", "")
   resource_group_name = azurerm_resource_group.shared.name
   location            = azurerm_resource_group.shared.location
-  sku                = "Premium"
-  admin_enabled      = false
+  sku                = "Basic"              # Using Basic SKU for testing
+  admin_enabled      = true                # Enable admin for easier testing
 
   network_rule_set {
     default_action = "Deny"
@@ -72,7 +72,8 @@ resource "azurerm_log_analytics_workspace" "containers" {
   location            = azurerm_resource_group.shared.location
   resource_group_name = azurerm_resource_group.shared.name
   sku                = "PerGB2018"
-  retention_in_days   = 30
+  retention_in_days   = 7                    # Minimum retention for testing
+  daily_quota_gb     = 0.5                  # Limit daily ingestion for cost control
 
   tags = var.tags
 }
@@ -145,4 +146,25 @@ resource "azurerm_private_endpoint" "acr" {
   }
 
   tags = var.tags
+}
+
+# Action group for monitoring alerts
+resource "azurerm_monitor_action_group" "main" {
+  name                = "${var.prefix}-action-group"
+  resource_group_name = azurerm_resource_group.shared.name
+  short_name          = "aksalerts"
+
+  email_receiver {
+    name                    = "ops-team"
+    email_address          = var.ops_team_email
+    use_common_alert_schema = true
+  }
+
+  tags = var.tags
+}
+
+# Add the variable to outputs.tf so other layers can reference it
+output "monitoring_action_group_id" {
+  description = "ID of the monitoring action group"
+  value       = azurerm_monitor_action_group.main.id
 }

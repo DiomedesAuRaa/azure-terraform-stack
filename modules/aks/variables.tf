@@ -113,3 +113,85 @@ variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
   default     = {}
+}
+
+variable "maintenance_window" {
+  description = "Maintenance window configuration for the AKS cluster"
+  type = object({
+    allowed = list(object({
+      day   = string
+      hours = list(number)
+    }))
+    not_allowed = list(object({
+      start = string
+      end   = string
+    }))
+  })
+  default = null
+}
+
+variable "auto_upgrade_channel" {
+  description = "The auto upgrade channel for the AKS cluster"
+  type        = string
+  default     = "stable"  # Options: none, patch, stable, rapid, node-image
+}
+
+variable "workload_identity_enabled" {
+  description = "Enable workload identity"
+  type        = bool
+  default     = true
+}
+
+variable "oidc_issuer_enabled" {
+  description = "Enable OIDC issuer"
+  type        = bool
+  default     = true
+}
+
+variable "azure_policy_enabled" {
+  description = "Enable Azure Policy Add-on"
+  type        = bool
+  default     = true
+}
+
+variable "host_encryption_enabled" {
+  description = "Enable host encryption for default and additional node pools"
+  type        = bool
+  default     = true
+}
+
+variable "automatic_channel_upgrade" {
+  description = "The upgrade channel for this Kubernetes Cluster"
+  type        = string
+  default     = "stable"  # Options: none, patch, rapid, stable
+}
+
+variable "enable_monitoring" {
+  description = "Enable monitoring and alerts for the AKS cluster"
+  type        = bool
+  default     = true
+}
+
+variable "action_group_id" {
+  description = "ID of the action group for alerts"
+  type        = string
+  default     = null  # Should be provided if enable_monitoring is true
+}
+
+variable "alert_settings" {
+  description = "Alert settings for the AKS cluster"
+  type = object({
+    node_cpu_percentage_threshold    = number
+    node_memory_percentage_threshold = number
+    pod_cpu_percentage_threshold     = number
+    pod_memory_percentage_threshold  = number
+    disk_usage_percentage_threshold  = number
+  })
+  default = {
+    node_cpu_percentage_threshold    = 80
+    node_memory_percentage_threshold = 80
+    pod_cpu_percentage_threshold     = 80
+    pod_memory_percentage_threshold  = 80
+    disk_usage_percentage_threshold  = 80
+  }
+}

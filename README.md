@@ -1,6 +1,44 @@
 # Azure Infrastructure Stack with Terraform
 
-This repository contains a modular Terraform configuration for deploying a production-ish-ready Azure infrastructure with a focus on AKS (Azure Kubernetes Service). The infrastructure is organized in layers, each building upon the previous one to create a complete, secure, and scalable environment.
+This repository contains a production-grade Terraform configuration for Azure infrastructure with AKS, optimized to also run in a cost-effective testing environment. While the architecture follows enterprise best practices, it includes configurations for both production and low-cost testing scenarios.
+
+## Cost-Optimized Testing
+
+This infrastructure can be deployed in a cost-effective way for testing:
+
+### Test Mode Features
+- Single-node AKS cluster with burstable VM (Standard_B2s)
+- Optional Azure Firewall deployment (disabled by default)
+- Basic tier Container Registry
+- Minimal Log Analytics retention (7 days)
+- Reduced monitoring and diagnostics
+- Auto-shutdown capabilities
+
+### Estimated Monthly Costs (Test Mode)
+- AKS: ~$30-40/month (single node, burstable VM)
+- Container Registry (Basic): ~$5/month
+- Storage and Networking: ~$10-15/month
+- Log Analytics: ~$5/month with quotas
+Total: ~$50-65/month
+
+### Production vs Testing Configurations
+
+Component | Production | Test Mode
+----------|------------|----------
+AKS Nodes | 3+ nodes (DS4_v2) | 1 node (B2s)
+Auto-scaling | Enabled | Disabled
+Azure Firewall | Premium SKU | Optional/Basic SKU
+Container Registry | Premium SKU | Basic SKU
+Log Analytics | 30 days retention | 7 days retention
+Monitoring | Full suite | Basic metrics
+
+### Switching to Production
+To switch to production configuration:
+1. Update node pool configurations in `3-platform/env/prod.tfvars`
+2. Enable Azure Firewall in `1-foundations/env/prod.tfvars`
+3. Upgrade ACR to Premium SKU in shared services
+4. Increase Log Analytics retention
+5. Enable full monitoring suite
 
 ## Stack Architecture
 
@@ -253,3 +291,87 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Keep Terraform and provider versions up to date
 - Regularly review and update security configurations
 - Monitor costs and optimize resource usage
+
+## Cost Management
+
+### Cost Optimization Features
+1. **Conditional Resource Deployment**
+   - Azure Firewall can be disabled for testing
+   - Optional components can be turned off when not needed
+
+2. **Resource Sizing**
+   - AKS uses burstable B-series VMs in test mode
+   - Minimal node count in testing
+   - Reduced storage sizes and retention periods
+
+3. **Best Practices for Cost Control**
+   - Use auto-shutdown for dev/test environments
+   - Monitor resource usage with Azure Cost Management
+   - Clean up unused resources regularly
+   - Use Azure Reserved Instances for production
+
+### Cost Saving Tips
+1. **Development/Testing**
+   - Stop AKS cluster during non-working hours
+   - Use Azure Dev/Test subscription benefits
+   - Monitor and clean up unused images in ACR
+   - Set budget alerts in Azure Cost Management
+
+2. **Scaling to Production**
+   - Review and adjust resource sizes based on actual usage
+   - Enable autoscaling with appropriate boundaries
+   - Use Azure Spot instances for non-critical workloads
+   - Implement proper tagging for cost allocation
+
+### Monitoring Costs
+```bash
+# Set up budget alert (using Azure CLI)
+az account set --subscription "Your-Sub-Name"
+az monitor metrics alert create \
+    --name "Monthly Budget Alert" \
+    --resource-group "your-rg" \
+    --scopes "/subscriptions/your-sub-id" \
+    --condition "total cost > 100" \
+    --description "Monthly budget exceeded"
+```
+
+## Development Environment Setup
+
+### Local Development
+1. **Prerequisites**
+   ```bash
+   az account set --subscription "Your-Sub-Name"
+   az feature register --namespace Microsoft.ContainerService --name AKS-ExtensionManager
+   az provider register --namespace Microsoft.ContainerService
+   ```
+
+2. **Environment Variables**
+   ```bash
+   export ARM_SUBSCRIPTION_ID="your-subscription-id"
+   export ARM_TENANT_ID="your-tenant-id"
+   export TF_VAR_subscription_id="$ARM_SUBSCRIPTION_ID"
+   export TF_VAR_tenant_id="$ARM_TENANT_ID"
+   ```
+
+### Testing Workflow
+1. Deploy infrastructure in test mode
+2. Validate functionality with minimal resources
+3. Test your applications and configurations
+4. Destroy resources when not in use:
+   ```bash
+   # Stop AKS cluster for cost saving
+   az aks stop --name your-aks-cluster --resource-group your-rg
+   
+   # Start when needed again
+   az aks start --name your-aks-cluster --resource-group your-rg
+   ```
+
+### Moving to Production
+When ready to deploy to production:
+1. Update tfvars files with production values
+2. Enable all security features
+3. Scale resources appropriately
+4. Enable full monitoring
+5. Review and implement all compliance requirements
+
+Remember: The test configuration maintains the same architecture as production but with minimal resource allocation to save costs during development and testing phases.
