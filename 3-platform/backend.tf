@@ -12,7 +12,7 @@ terraform {
     resource_group_name  = "rg-terraform-bootstrap"
     storage_account_name = "stterraformstateprod"
     container_name      = "tfstate"
-    key                 = "foundations.tfstate"
+    key                 = "platform.tfstate"
     use_azuread_auth    = true
   }
 }
