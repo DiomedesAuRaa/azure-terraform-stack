@@ -14,5 +14,16 @@ terraform {
     container_name      = "tfstate"
     key                 = "shared-services.tfstate"
     use_azuread_auth    = true
+    use_microsoft_graph = true  # Required for modern Azure AD authentication
+    
+    # State locking configuration
+    lock_id = "shared-services"
+    lock_method {
+      name = "azurekeyvault"
+      configuration = {
+        vault_name    = "aztf-tf-kv"  # This should match your Key Vault name from bootstrap
+        secret_name   = "terraform-lock-shared-services"
+      }
+    }
   }
 }

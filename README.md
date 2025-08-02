@@ -47,8 +47,9 @@ azure-terraform-stack/
 
 - Azure Subscription
 - Azure CLI (latest version)
-- Terraform (>= 1.0)
+- Terraform (~> 1.7.0)
 - Kubernetes v1.31.3 (AKS)
+- Azure Provider (~> 4.0)
 - Contributor access to the subscription
 - Azure AD permissions to create groups and assign roles
 

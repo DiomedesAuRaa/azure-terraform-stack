@@ -4,7 +4,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.0"
+      version = "~> 4.0"
     }
   }
 }
@@ -53,6 +53,25 @@ resource "azurerm_key_vault" "terraform" {
 
   purge_protection_enabled   = true
   soft_delete_retention_days = 90
+  enable_rbac_authorization = false  # Using access policies for backwards compatibility
+
+  access_policy {
+    tenant_id = var.tenant_id
+    object_id = azuread_group.terraform_admins.object_id
+
+    key_permissions = [
+      "Get", "List", "Create", "Delete", "Update", "Recover", "Purge"
+    ]
+    secret_permissions = [
+      "Get", "List", "Set", "Delete", "Recover", "Backup", "Restore", "Purge"
+    ]
+  }
+
+  network_acls {
+    bypass         = "AzureServices"
+    default_action = "Deny"
+    ip_rules       = var.allowed_ip_ranges
+  }
 
   tags = var.tags
 }

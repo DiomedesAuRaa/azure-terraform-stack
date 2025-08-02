@@ -61,3 +61,26 @@ After this layer is deployed:
 - Storage account name and container for state files
 - Key Vault name and resource ID
 - Terraform Admins group ID
+
+# State Locking
+
+This layer sets up state locking using Azure Key Vault. The state locking mechanism:
+- Prevents concurrent modifications to the same state file
+- Uses Key Vault secrets for lock management
+- Integrates with Azure AD for authentication
+- Applies network restrictions through Key Vault network ACLs
+
+Each layer's state file has its own lock, managed through Key Vault secrets:
+- foundations: terraform-lock-foundations
+- shared-services: terraform-lock-shared-services
+- platform: terraform-lock-platform
+
+## Troubleshooting State Locks
+
+If a lock gets stuck (e.g., due to interrupted apply):
+1. Check the lock status in Key Vault
+2. Use the Azure Portal or Azure CLI to delete the lock if necessary:
+```bash
+az keyvault secret delete --name terraform-lock-[layer] --vault-name aztf-tf-kv
+az keyvault secret purge --name terraform-lock-[layer] --vault-name aztf-tf-kv
+```

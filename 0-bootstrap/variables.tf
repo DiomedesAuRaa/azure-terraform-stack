@@ -28,3 +28,9 @@ variable "tags" {
     managed_by  = "terraform"
   }
 }
+
+variable "allowed_ip_ranges" {
+  description = "List of IP ranges that can access the Key Vault"
+  type        = list(string)
+  default     = []  # Empty by default, should be provided in tfvars
+}
