@@ -1,18 +1,18 @@
-terraform {
-  required_version = ">= 1.0"
-  
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 4.0"
-    }
-  }
-}
-
 provider "azurerm" {
   features {}
   subscription_id = var.subscription_id
   tenant_id       = var.tenant_id
+}
+
+provider "azuread" {
+  tenant_id = var.tenant_id
+}
+
+# Create Azure AD group for Terraform admins
+resource "azuread_group" "terraform_admins" {
+  display_name     = "${var.prefix}-terraform-admins"
+  security_enabled = true
+  description      = "Terraform administrators group for managing infrastructure"
 }
 
 # Create the state storage account
@@ -23,7 +23,7 @@ resource "azurerm_resource_group" "terraform_state" {
 }
 
 resource "azurerm_storage_account" "terraform_state" {
-  name                     = "${var.prefix}tfstate"
+  name                     = var.storage_account_name
   resource_group_name      = azurerm_resource_group.terraform_state.name
   location                 = azurerm_resource_group.terraform_state.location
   account_tier             = "Standard"
@@ -38,14 +38,14 @@ resource "azurerm_storage_account" "terraform_state" {
 }
 
 resource "azurerm_storage_container" "terraform_state" {
-  name                  = "tfstate"
-  storage_account_name  = azurerm_storage_account.terraform_state.name
+  name                 = "tfstate"
+  storage_account_id   = azurerm_storage_account.terraform_state.id
   container_access_type = "private"
 }
 
 # Create Key Vault for shared secrets
 resource "azurerm_key_vault" "terraform" {
-  name                = "${var.prefix}-tf-kv"
+  name                = var.key_vault_name
   location            = azurerm_resource_group.terraform_state.location
   resource_group_name = azurerm_resource_group.terraform_state.name
   tenant_id          = var.tenant_id

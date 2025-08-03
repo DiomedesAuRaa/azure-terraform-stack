@@ -10,7 +10,7 @@ output "terraform_state_container_name" {
 
 output "terraform_state_resource_group_name" {
   description = "Name of the resource group containing terraform state storage"
-  value       = azurerm_resource_group.bootstrap.name
+  value       = azurerm_resource_group.terraform_state.name
 }
 
 output "key_vault_name" {

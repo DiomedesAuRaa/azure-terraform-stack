@@ -34,3 +34,25 @@ variable "allowed_ip_ranges" {
   type        = list(string)
   default     = []  # Empty by default, should be provided in tfvars
 }
+
+variable "environment_suffix" {
+  description = "Suffix used for globally unique resource names"
+  type        = string
+  default     = ""
+}
+
+variable "unique_suffix" {
+  description = "A unique suffix to add to globally unique resource names"
+  type        = string
+  default     = "23xyz"  # Change this for each deployment
+}
+
+variable "key_vault_name" {
+  description = "Name of the Key Vault (must be globally unique)"
+  type        = string
+}
+
+variable "storage_account_name" {
+  description = "Name of the Storage Account (must be globally unique)"
+  type        = string
+}
