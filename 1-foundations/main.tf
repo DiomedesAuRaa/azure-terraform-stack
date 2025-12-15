@@ -29,7 +29,7 @@ module "hub_network" {
     }
     "management" = {
       address_prefixes = var.management_subnet_prefix
-      nsg_rules       = var.management_nsg_rules
+      nsg_rules        = var.management_nsg_rules
     }
   }
 
@@ -42,7 +42,7 @@ resource "azurerm_public_ip" "fw" {
   location            = var.location
   resource_group_name = azurerm_resource_group.hub.name
   allocation_method   = "Static"
-  sku                = "Standard"
+  sku                 = "Standard"
 
   tags = var.tags
 }
@@ -52,7 +52,7 @@ resource "azurerm_public_ip" "vpn" {
   location            = var.location
   resource_group_name = azurerm_resource_group.hub.name
   allocation_method   = "Static"
-  sku                = "Standard"
+  sku                 = "Standard"
 
   tags = var.tags
 }
@@ -62,7 +62,7 @@ resource "azurerm_log_analytics_workspace" "hub" {
   name                = "${var.prefix}-hub-logs"
   location            = var.location
   resource_group_name = azurerm_resource_group.hub.name
-  sku                = "PerGB2018"
+  sku                 = "PerGB2018"
   retention_in_days   = 30
 
   tags = var.tags
@@ -70,12 +70,12 @@ resource "azurerm_log_analytics_workspace" "hub" {
 
 # Azure Firewall - Conditional creation for cost saving in testing
 resource "azurerm_firewall" "hub" {
-  count               = var.enable_azure_firewall ? 1 : 0  # Only create if enabled
+  count               = var.enable_azure_firewall ? 1 : 0 # Only create if enabled
   name                = "${var.prefix}-hub-fw"
   location            = var.location
   resource_group_name = azurerm_resource_group.hub.name
-  sku_name           = var.firewall_sku_name
-  sku_tier           = var.firewall_sku_tier
+  sku_name            = var.firewall_sku_name
+  sku_tier            = var.firewall_sku_tier
 
   ip_configuration {
     name                 = "configuration"
@@ -92,6 +92,22 @@ resource "azurerm_monitor_diagnostic_setting" "fw_diagnostics" {
   name                       = "fw-diagnostics"
   target_resource_id         = azurerm_firewall.hub[0].id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.hub.id
+
+  enabled_log {
+    category = "AzureFirewallApplicationRule"
+  }
+
+  enabled_log {
+    category = "AzureFirewallNetworkRule"
+  }
+
+  enabled_log {
+    category = "AzureFirewallDnsProxy"
+  }
+
+  enabled_metric {
+    category = "AllMetrics"
+  }
 }
 
 # VPN Gateway
@@ -99,10 +115,10 @@ resource "azurerm_virtual_network_gateway" "hub" {
   name                = "${var.prefix}-hub-vpn"
   location            = var.location
   resource_group_name = azurerm_resource_group.hub.name
-  type               = "Vpn"
-  vpn_type           = "RouteBased"
-  sku                = "VpnGw1"
-  
+  type                = "Vpn"
+  vpn_type            = "RouteBased"
+  sku                 = "VpnGw1"
+
   ip_configuration {
     name                 = "default"
     subnet_id            = module.hub_network.subnet_ids["GatewaySubnet"]
@@ -117,4 +133,20 @@ resource "azurerm_monitor_diagnostic_setting" "vpn_diagnostics" {
   name                       = "vpn-diagnostics"
   target_resource_id         = azurerm_virtual_network_gateway.hub.id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.hub.id
+
+  enabled_log {
+    category = "GatewayDiagnosticLog"
+  }
+
+  enabled_log {
+    category = "TunnelDiagnosticLog"
+  }
+
+  enabled_log {
+    category = "RouteDiagnosticLog"
+  }
+
+  enabled_metric {
+    category = "AllMetrics"
+  }
 }

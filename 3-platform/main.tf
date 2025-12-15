@@ -8,22 +8,22 @@ provider "azurerm" {
 data "terraform_remote_state" "foundations" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "rg-terraform-bootstrap"
-    storage_account_name = "stterraformstateprod"
-    container_name      = "tfstate"
-    key                 = "foundations.tfstate"
-    use_azuread_auth    = true
+    resource_group_name  = var.backend_resource_group_name
+    storage_account_name = var.backend_storage_account_name
+    container_name       = var.backend_container_name
+    key                  = "foundations.tfstate"
+    use_azuread_auth     = true
   }
 }
 
 data "terraform_remote_state" "shared" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "rg-terraform-bootstrap"
-    storage_account_name = "stterraformstateprod"
-    container_name      = "tfstate"
-    key                 = "shared-services.tfstate"
-    use_azuread_auth    = true
+    resource_group_name  = var.backend_resource_group_name
+    storage_account_name = var.backend_storage_account_name
+    container_name       = var.backend_container_name
+    key                  = "shared-services.tfstate"
+    use_azuread_auth     = true
   }
 }
 
@@ -59,8 +59,8 @@ resource "azurerm_virtual_network_peering" "aks_to_hub" {
   virtual_network_name         = module.aks_network.vnet_name
   remote_virtual_network_id    = data.terraform_remote_state.foundations.outputs.hub_vnet_id
   allow_virtual_network_access = true
-  allow_forwarded_traffic     = true
-  use_remote_gateways         = true
+  allow_forwarded_traffic      = true
+  use_remote_gateways          = true
 }
 
 # AKS Cluster
@@ -72,20 +72,19 @@ module "aks" {
   location            = var.location
   kubernetes_version  = var.kubernetes_version
 
-  vnet_subnet_id      = module.aks_network.subnet_ids["aks-1"]
-  service_cidr        = var.aks_service_cidr
-  dns_service_ip      = var.aks_dns_service_ip
-  docker_bridge_cidr  = var.aks_docker_bridge_cidr
+  vnet_subnet_id = module.aks_network.subnet_ids["aks-1"]
+  service_cidr   = var.aks_service_cidr
+  dns_service_ip = var.aks_dns_service_ip
 
-  network_plugin      = "azure"
-  network_policy      = "azure"
+  network_plugin = "azure"
+  network_policy = "azure"
 
-  default_node_pool   = var.aks_default_node_pool
+  default_node_pool = var.aks_default_node_pool
 
   acr_id                     = data.terraform_remote_state.shared.outputs.container_registry_id
-  key_vault_id              = data.terraform_remote_state.shared.outputs.key_vault_id
+  key_vault_id               = data.terraform_remote_state.shared.outputs.key_vault_id
   log_analytics_workspace_id = data.terraform_remote_state.shared.outputs.log_analytics_workspace_id
-  private_dns_zone_id       = data.terraform_remote_state.shared.outputs.aks_private_dns_zone_id
+  private_dns_zone_id        = data.terraform_remote_state.shared.outputs.aks_private_dns_zone_id
 
   tags = var.tags
 }

@@ -26,15 +26,15 @@ variable "subnets" {
       name                       = string
       priority                   = number
       direction                  = string
-      access                    = string
-      protocol                  = string
-      source_port_range         = string
-      destination_port_range    = string
-      source_address_prefix     = string
+      access                     = string
+      protocol                   = string
+      source_port_range          = string
+      destination_port_range     = string
+      source_address_prefix      = string
       destination_address_prefix = string
     })))
     service_endpoints = optional(list(string))
-    delegations      = optional(map(list(string)))
+    delegations       = optional(map(list(string)))
   }))
 }
 
@@ -48,3 +48,4 @@ variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)
   default     = {}
+}

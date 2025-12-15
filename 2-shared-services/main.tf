@@ -8,11 +8,11 @@ provider "azurerm" {
 data "terraform_remote_state" "foundations" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "rg-terraform-bootstrap"
-    storage_account_name = "stterraformstateprod"
-    container_name      = "tfstate"
-    key                 = "foundations.tfstate"
-    use_azuread_auth    = true
+    resource_group_name  = var.backend_resource_group_name
+    storage_account_name = var.backend_storage_account_name
+    container_name       = var.backend_container_name
+    key                  = "foundations.tfstate"
+    use_azuread_auth     = true
   }
 }
 
@@ -28,14 +28,18 @@ resource "azurerm_container_registry" "main" {
   name                = replace("${var.prefix}acr", "-", "")
   resource_group_name = azurerm_resource_group.shared.name
   location            = azurerm_resource_group.shared.location
-  sku                = "Basic"              # Using Basic SKU for testing
-  admin_enabled      = true                # Enable admin for easier testing
+  sku                 = var.acr_sku
+  admin_enabled       = var.acr_admin_enabled
 
-  network_rule_set {
-    default_action = "Deny"
-    ip_rule {
-      action   = "Allow"
-      ip_range = var.admin_ip_ranges[0]
+  # Network rules only available with Premium SKU
+  dynamic "network_rule_set" {
+    for_each = var.acr_sku == "Premium" ? [1] : []
+    content {
+      default_action = "Deny"
+      ip_rule {
+        action   = "Allow"
+        ip_range = var.admin_ip_ranges[0]
+      }
     }
   }
 
@@ -51,13 +55,13 @@ resource "azurerm_key_vault" "aks" {
   name                = "${var.prefix}-aks-kv"
   location            = azurerm_resource_group.shared.location
   resource_group_name = azurerm_resource_group.shared.name
-  tenant_id          = var.tenant_id
-  sku_name           = "standard"
+  tenant_id           = var.tenant_id
+  sku_name            = "standard"
 
-  enable_rbac_authorization = true
-  purge_protection_enabled = true
+  rbac_authorization_enabled = true
+  purge_protection_enabled   = true
 
-  network_rule_set {
+  network_acls {
     default_action = "Deny"
     ip_rules       = var.admin_ip_ranges
     bypass         = "AzureServices"
@@ -71,9 +75,9 @@ resource "azurerm_log_analytics_workspace" "containers" {
   name                = "${var.prefix}-container-logs"
   location            = azurerm_resource_group.shared.location
   resource_group_name = azurerm_resource_group.shared.name
-  sku                = "PerGB2018"
-  retention_in_days   = 7                    # Minimum retention for testing
-  daily_quota_gb     = 0.5                  # Limit daily ingestion for cost control
+  sku                 = "PerGB2018"
+  retention_in_days   = var.log_analytics_retention_days
+  daily_quota_gb      = var.log_analytics_daily_quota_gb
 
   tags = var.tags
 }
@@ -81,10 +85,10 @@ resource "azurerm_log_analytics_workspace" "containers" {
 # Enable container monitoring solution
 resource "azurerm_log_analytics_solution" "containers" {
   solution_name         = "ContainerInsights"
-  location             = azurerm_resource_group.shared.location
-  resource_group_name  = azurerm_resource_group.shared.name
+  location              = azurerm_resource_group.shared.location
+  resource_group_name   = azurerm_resource_group.shared.name
   workspace_resource_id = azurerm_log_analytics_workspace.containers.id
-  workspace_name       = azurerm_log_analytics_workspace.containers.name
+  workspace_name        = azurerm_log_analytics_workspace.containers.name
 
   plan {
     publisher = "Microsoft"
@@ -136,8 +140,8 @@ resource "azurerm_private_endpoint" "acr" {
   private_service_connection {
     name                           = "acr-connection"
     private_connection_resource_id = azurerm_container_registry.main.id
-    is_manual_connection          = false
-    subresource_names             = ["registry"]
+    is_manual_connection           = false
+    subresource_names              = ["registry"]
   }
 
   private_dns_zone_group {
@@ -156,7 +160,7 @@ resource "azurerm_monitor_action_group" "main" {
 
   email_receiver {
     name                    = "ops-team"
-    email_address          = var.ops_team_email
+    email_address           = var.ops_team_email
     use_common_alert_schema = true
   }
 

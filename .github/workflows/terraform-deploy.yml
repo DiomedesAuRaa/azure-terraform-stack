@@ -7,55 +7,245 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+      layer:
+        description: 'Layer to deploy (or all)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - 1-foundations
+          - 2-shared-services
+          - 3-platform
 
 permissions:
-  id-token: write # Required for OIDC authentication
+  id-token: write    # Required for OIDC authentication
   contents: read
+  pull-requests: write  # Required for PR comments
+
+env:
+  TF_VERSION: '1.7.0'
+  ARM_USE_AZUREAD: true
+  ARM_USE_OIDC: true
 
 jobs:
-  terraform:
+  # Validate all layers first
+  validate:
+    name: 'Validate Terraform'
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         layer: ['1-foundations', '2-shared-services', '3-platform']
-        environment: ['dev', 'prod']
-    name: 'Terraform ${{ matrix.layer }} - ${{ matrix.environment }}'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 'Setup Terraform'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 'Terraform Format Check'
+        run: terraform fmt -check -recursive
+        working-directory: ./${{ matrix.layer }}
+
+      - name: 'Terraform Init (validation only)'
+        run: terraform init -backend=false
+        working-directory: ./${{ matrix.layer }}
+
+      - name: 'Terraform Validate'
+        run: terraform validate
+        working-directory: ./${{ matrix.layer }}
+
+  # Deploy foundations layer
+  foundations:
+    name: 'Deploy 1-foundations'
+    needs: validate
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: ['dev', 'prod']
     environment: ${{ matrix.environment }}
+    concurrency:
+      group: terraform-${{ matrix.environment }}-1-foundations
+      cancel-in-progress: false
+    outputs:
+      plan-exitcode: ${{ steps.plan.outputs.exitcode }}
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-    - name: 'Azure OIDC Login'
-      uses: azure/login@v1
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: 'Azure OIDC Login'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    - name: 'Setup Terraform'
-      uses: hashicorp/setup-terraform@v2
+      - name: 'Setup Terraform'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
 
-    - name: 'Terraform Init'
-      run: |
-        terraform init \
-          -backend-config="storage_account_name=${{ secrets.AZURE_STORAGE_ACCOUNT }}" \
-          -backend-config="container_name=${{ secrets.AZURE_CONTAINER_NAME }}" \
-          -backend-config="key=${{ matrix.environment }}/${{ matrix.layer }}.tfstate"
-      working-directory: ./${{ matrix.layer }}
+      - name: 'Terraform Init'
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ secrets.AZURE_STATE_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ secrets.AZURE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ secrets.AZURE_CONTAINER_NAME }}" \
+            -backend-config="key=${{ matrix.environment }}/foundations.tfstate"
+        working-directory: ./1-foundations
 
-    - name: 'Terraform Plan'
-      run: |
-        terraform plan \
-          -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-          -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
-          -var-file="env/${{ matrix.environment }}.tfvars"
-      working-directory: ./${{ matrix.layer }}
+      - name: 'Terraform Plan'
+        id: plan
+        run: |
+          terraform plan \
+            -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
+            -var-file="env/${{ matrix.environment }}.tfvars" \
+            -out=tfplan \
+            -detailed-exitcode
+        working-directory: ./1-foundations
+        continue-on-error: true
 
-    - name: 'Terraform Apply'
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: |
-        terraform apply -auto-approve \
-          -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-          -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
-          -var-file="env/${{ matrix.environment }}.tfvars"
-      working-directory: ./${{ matrix.layer }}
+      - name: 'Upload Plan'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-foundations-${{ matrix.environment }}
+          path: ./1-foundations/tfplan
+
+      - name: 'Terraform Apply'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outputs.exitcode == '2'
+        run: terraform apply -auto-approve tfplan
+        working-directory: ./1-foundations
+
+  # Deploy shared-services layer (depends on foundations)
+  shared-services:
+    name: 'Deploy 2-shared-services'
+    needs: [validate, foundations]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: ['dev', 'prod']
+    environment: ${{ matrix.environment }}
+    concurrency:
+      group: terraform-${{ matrix.environment }}-2-shared-services
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 'Azure OIDC Login'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: 'Setup Terraform'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 'Terraform Init'
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ secrets.AZURE_STATE_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ secrets.AZURE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ secrets.AZURE_CONTAINER_NAME }}" \
+            -backend-config="key=${{ matrix.environment }}/shared-services.tfstate"
+        working-directory: ./2-shared-services
+
+      - name: 'Terraform Plan'
+        id: plan
+        run: |
+          terraform plan \
+            -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
+            -var="backend_storage_account_name=${{ secrets.AZURE_STORAGE_ACCOUNT }}" \
+            -var-file="env/${{ matrix.environment }}.tfvars" \
+            -out=tfplan \
+            -detailed-exitcode
+        working-directory: ./2-shared-services
+        continue-on-error: true
+
+      - name: 'Upload Plan'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-shared-services-${{ matrix.environment }}
+          path: ./2-shared-services/tfplan
+
+      - name: 'Terraform Apply'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outputs.exitcode == '2'
+        run: terraform apply -auto-approve tfplan
+        working-directory: ./2-shared-services
+
+  # Deploy platform layer (depends on shared-services)
+  platform:
+    name: 'Deploy 3-platform'
+    needs: [validate, shared-services]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: ['dev', 'prod']
+    environment: ${{ matrix.environment }}
+    concurrency:
+      group: terraform-${{ matrix.environment }}-3-platform
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 'Azure OIDC Login'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: 'Setup Terraform'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 'Terraform Init'
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ secrets.AZURE_STATE_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ secrets.AZURE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ secrets.AZURE_CONTAINER_NAME }}" \
+            -backend-config="key=${{ matrix.environment }}/platform.tfstate"
+        working-directory: ./3-platform
+
+      - name: 'Terraform Plan'
+        id: plan
+        run: |
+          terraform plan \
+            -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
+            -var="backend_storage_account_name=${{ secrets.AZURE_STORAGE_ACCOUNT }}" \
+            -var-file="env/${{ matrix.environment }}.tfvars" \
+            -out=tfplan \
+            -detailed-exitcode
+        working-directory: ./3-platform
+        continue-on-error: true
+
+      - name: 'Upload Plan'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-platform-${{ matrix.environment }}
+          path: ./3-platform/tfplan
+
+      - name: 'Terraform Apply'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.plan.outputs.exitcode == '2'
+        run: terraform apply -auto-approve tfplan
+        working-directory: ./3-platform

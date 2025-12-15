@@ -1,25 +1,53 @@
-# Ignore all .sh scripts with "setup" in the name
-*setup*.sh
-
 # Terraform state files
 *.tfstate
-*.tfstate.backup
+*.tfstate.*
 terraform.tfstate.d/
 
-# Terraform crash logs
+# Terraform crash logs and debug output
 crash.log
+crash.*.log
 
-# Ignore Terraform provider plugins
+# Terraform provider plugins and lock file
 .terraform/
 .terraform.lock.hcl
 
-# Ignore environment variable files
+# Plan files
+*.tfplan
+tfplan
+plan.out
+
+# Sensitive variable files
+*.auto.tfvars
+secrets.tfvars
+*.secret.tfvars
+
+# Environment variable files
 .env
+.env.*
+
+# Local override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore any .sh scripts with "setup" in the name
+*setup*.sh
 
 # Ignore sensitive AWS credentials (if any)
 .aws/
 
-# Ignore IDE-specific files
+# IDE-specific files
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
+
+# macOS files
+.DS_Store
+
+# Temporary files
+*.tmp
+*.temp
+*.bak

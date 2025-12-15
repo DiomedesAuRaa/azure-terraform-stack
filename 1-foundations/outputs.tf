@@ -15,12 +15,17 @@ output "hub_subnet_ids" {
 
 output "firewall_private_ip" {
   description = "Private IP address of the Azure Firewall"
-  value       = azurerm_firewall.hub.ip_configuration[0].private_ip_address
+  value       = var.enable_azure_firewall ? azurerm_firewall.hub[0].ip_configuration[0].private_ip_address : null
 }
 
 output "firewall_public_ip" {
   description = "Public IP address of the Azure Firewall"
-  value       = azurerm_public_ip.fw.ip_address
+  value       = var.enable_azure_firewall ? azurerm_public_ip.fw.ip_address : null
+}
+
+output "firewall_enabled" {
+  description = "Whether Azure Firewall is enabled"
+  value       = var.enable_azure_firewall
 }
 
 output "vpn_gateway_public_ip" {

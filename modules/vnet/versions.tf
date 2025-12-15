@@ -7,8 +7,4 @@ terraform {
       version = "~> 4.0"
     }
   }
-
-  # Backend configuration is provided via -backend-config flags in CI/CD
-  # This allows for environment-specific state storage
-  backend "azurerm" {}
 }

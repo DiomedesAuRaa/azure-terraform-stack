@@ -8,6 +8,23 @@ variable "tenant_id" {
   type        = string
 }
 
+variable "backend_resource_group_name" {
+  description = "Resource group name for Terraform state storage"
+  type        = string
+  default     = "rg-terraform-bootstrap"
+}
+
+variable "backend_storage_account_name" {
+  description = "Storage account name for Terraform state"
+  type        = string
+}
+
+variable "backend_container_name" {
+  description = "Container name for Terraform state"
+  type        = string
+  default     = "tfstate"
+}
+
 variable "prefix" {
   description = "Prefix for all resource names"
   type        = string
@@ -50,33 +67,27 @@ variable "aks_dns_service_ip" {
   default     = "10.0.0.10"
 }
 
-variable "aks_docker_bridge_cidr" {
-  description = "CIDR range for the Docker bridge network"
-  type        = string
-  default     = "172.17.0.1/16"
-}
-
 variable "aks_default_node_pool" {
   description = "Default node pool configuration for AKS"
   type = object({
     name                = string
-    vm_size            = string
+    vm_size             = string
     enable_auto_scaling = bool
-    node_count         = number
-    min_count          = number
-    max_count          = number
-    os_disk_size_gb    = number
-    max_pods           = number
+    node_count          = number
+    min_count           = number
+    max_count           = number
+    os_disk_size_gb     = number
+    max_pods            = number
   })
   default = {
     name                = "default"
-    vm_size            = "Standard_DS2_v2"
+    vm_size             = "Standard_DS2_v2"
     enable_auto_scaling = true
-    node_count         = 2
-    min_count          = 1
-    max_count          = 3
-    os_disk_size_gb    = 128
-    max_pods           = 30
+    node_count          = 2
+    min_count           = 1
+    max_count           = 3
+    os_disk_size_gb     = 128
+    max_pods            = 30
   }
 }
 

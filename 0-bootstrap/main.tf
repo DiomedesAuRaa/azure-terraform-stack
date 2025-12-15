@@ -28,7 +28,7 @@ resource "azurerm_storage_account" "terraform_state" {
   location                 = azurerm_resource_group.terraform_state.location
   account_tier             = "Standard"
   account_replication_type = "GRS"
-  min_tls_version         = "TLS1_2"
+  min_tls_version          = "TLS1_2"
 
   blob_properties {
     versioning_enabled = true
@@ -38,8 +38,8 @@ resource "azurerm_storage_account" "terraform_state" {
 }
 
 resource "azurerm_storage_container" "terraform_state" {
-  name                 = "tfstate"
-  storage_account_id   = azurerm_storage_account.terraform_state.id
+  name                  = "tfstate"
+  storage_account_id    = azurerm_storage_account.terraform_state.id
   container_access_type = "private"
 }
 
@@ -48,12 +48,12 @@ resource "azurerm_key_vault" "terraform" {
   name                = var.key_vault_name
   location            = azurerm_resource_group.terraform_state.location
   resource_group_name = azurerm_resource_group.terraform_state.name
-  tenant_id          = var.tenant_id
-  sku_name           = "standard"
+  tenant_id           = var.tenant_id
+  sku_name            = "standard"
 
   purge_protection_enabled   = true
   soft_delete_retention_days = 90
-  enable_rbac_authorization = false  # Using access policies for backwards compatibility
+  rbac_authorization_enabled = false # Using access policies for backwards compatibility
 
   access_policy {
     tenant_id = var.tenant_id

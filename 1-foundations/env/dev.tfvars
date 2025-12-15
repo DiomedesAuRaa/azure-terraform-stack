@@ -7,14 +7,14 @@
 # tenant_id = Managed by GHA_AZURE_TENANT_ID secret
 
 # Resource naming and location
-location = "eastus"              # Primary region for dev
-prefix   = "dev"                # Prefix for all resources
+location = "eastus" # Primary region for dev
+prefix   = "dev"    # Prefix for all resources
 
 # Network configuration - Development CIDR ranges
-hub_address_space       = ["10.0.0.0/16"]           # Development address space
-gateway_subnet_prefix   = ["10.0.0.0/24"]           # VPN Gateway subnet
-firewall_subnet_prefix  = ["10.0.1.0/24"]           # Azure Firewall subnet
-management_subnet_prefix = ["10.0.2.0/24"]          # Management subnet
+hub_address_space        = ["10.0.0.0/16"] # Development address space
+gateway_subnet_prefix    = ["10.0.0.0/24"] # VPN Gateway subnet
+firewall_subnet_prefix   = ["10.0.1.0/24"] # Azure Firewall subnet
+management_subnet_prefix = ["10.0.2.0/24"] # Management subnet
 
 management_nsg_rules = [
   {
@@ -22,10 +22,10 @@ management_nsg_rules = [
     priority                   = 100
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                  = "Tcp"
-    source_port_range         = "*"
-    destination_port_range    = "22"
-    source_address_prefix     = "VirtualNetwork"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "VirtualNetwork"
     destination_address_prefix = "*"
   },
   {
@@ -33,10 +33,10 @@ management_nsg_rules = [
     priority                   = 110
     direction                  = "Inbound"
     access                     = "Allow"
-    protocol                  = "Tcp"
-    source_port_range         = "*"
-    destination_port_range    = "3389"
-    source_address_prefix     = "VirtualNetwork"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "3389"
+    source_address_prefix      = "VirtualNetwork"
     destination_address_prefix = "*"
   }
 ]

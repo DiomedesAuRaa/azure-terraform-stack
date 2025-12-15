@@ -85,11 +85,12 @@ azure-terraform-stack/
 
 - Azure Subscription
 - Azure CLI (latest version)
-- Terraform (~> 1.7.0)
+- Terraform (>= 1.7.0)
 - Kubernetes v1.31.3 (AKS)
 - Azure Provider (~> 4.0)
 - Contributor access to the subscription
 - Azure AD permissions to create groups and assign roles
+- (Optional) pre-commit for local validation
 
 ## Getting Started
 
@@ -274,8 +275,24 @@ module "aks" {
 
 1. Create a feature branch
 2. Make your changes
-3. Update documentation
-4. Submit a pull request
+3. Run pre-commit hooks: `pre-commit run --all-files`
+4. Update documentation
+5. Submit a pull request
+
+### Pre-commit Setup
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+### Terraform Formatting
+```bash
+# Format all Terraform files
+terraform fmt -recursive
+
+# Validate configuration
+terraform validate
+```
 
 ## License
 

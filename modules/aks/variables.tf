@@ -47,38 +47,32 @@ variable "dns_service_ip" {
   default     = "10.0.0.10"
 }
 
-variable "docker_bridge_cidr" {
-  description = "CIDR range for the Docker bridge network"
-  type        = string
-  default     = "172.17.0.1/16"
-}
-
 variable "default_node_pool" {
   description = "Default node pool configuration"
   type = object({
     name                = string
-    vm_size            = string
+    vm_size             = string
     enable_auto_scaling = bool
-    node_count         = number
-    min_count          = number
-    max_count          = number
-    os_disk_size_gb    = number
-    max_pods           = number
+    node_count          = number
+    min_count           = number
+    max_count           = number
+    os_disk_size_gb     = number
+    max_pods            = number
   })
 }
 
 variable "additional_node_pools" {
   description = "Additional node pool configurations"
   type = map(object({
-    vm_size            = string
+    vm_size             = string
     enable_auto_scaling = bool
-    node_count         = number
-    min_count          = number
-    max_count          = number
-    os_disk_size_gb    = number
-    max_pods           = number
-    node_labels        = map(string)
-    node_taints        = list(string)
+    node_count          = number
+    min_count           = number
+    max_count           = number
+    os_disk_size_gb     = number
+    max_pods            = number
+    node_labels         = map(string)
+    node_taints         = list(string)
   }))
   default = {}
 }
@@ -133,7 +127,7 @@ variable "maintenance_window" {
 variable "auto_upgrade_channel" {
   description = "The auto upgrade channel for the AKS cluster"
   type        = string
-  default     = "stable"  # Options: none, patch, stable, rapid, node-image
+  default     = "stable" # Options: none, patch, stable, rapid, node-image
 }
 
 variable "workload_identity_enabled" {
@@ -163,7 +157,7 @@ variable "host_encryption_enabled" {
 variable "automatic_channel_upgrade" {
   description = "The upgrade channel for this Kubernetes Cluster"
   type        = string
-  default     = "stable"  # Options: none, patch, rapid, stable
+  default     = "stable" # Options: none, patch, rapid, stable
 }
 
 variable "enable_monitoring" {
@@ -175,7 +169,7 @@ variable "enable_monitoring" {
 variable "action_group_id" {
   description = "ID of the action group for alerts"
   type        = string
-  default     = null  # Should be provided if enable_monitoring is true
+  default     = null # Should be provided if enable_monitoring is true
 }
 
 variable "alert_settings" {

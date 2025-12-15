@@ -51,10 +51,10 @@ variable "management_nsg_rules" {
     priority                   = number
     direction                  = string
     access                     = string
-    protocol                  = string
-    source_port_range         = string
-    destination_port_range    = string
-    source_address_prefix     = string
+    protocol                   = string
+    source_port_range          = string
+    destination_port_range     = string
+    source_address_prefix      = string
     destination_address_prefix = string
   }))
   default = [
@@ -63,10 +63,10 @@ variable "management_nsg_rules" {
       priority                   = 100
       direction                  = "Inbound"
       access                     = "Allow"
-      protocol                  = "Tcp"
-      source_port_range         = "*"
-      destination_port_range    = "22"
-      source_address_prefix     = "VirtualNetwork"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "22"
+      source_address_prefix      = "VirtualNetwork"
       destination_address_prefix = "*"
     },
     {
@@ -74,10 +74,10 @@ variable "management_nsg_rules" {
       priority                   = 110
       direction                  = "Inbound"
       access                     = "Allow"
-      protocol                  = "Tcp"
-      source_port_range         = "*"
-      destination_port_range    = "3389"
-      source_address_prefix     = "VirtualNetwork"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "3389"
+      source_address_prefix      = "VirtualNetwork"
       destination_address_prefix = "*"
     }
   ]
@@ -101,11 +101,11 @@ variable "enable_azure_firewall" {
 variable "firewall_sku_name" {
   description = "SKU name of the Azure Firewall"
   type        = string
-  default     = "Basic"  # Using Basic SKU for testing
+  default     = "Basic" # Using Basic SKU for testing
 }
 
 variable "firewall_sku_tier" {
   description = "SKU tier of the Azure Firewall"
   type        = string
-  default     = "Basic"  # Using Basic tier for testing
+  default     = "Basic" # Using Basic tier for testing
 }

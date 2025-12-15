@@ -32,7 +32,7 @@ variable "tags" {
 variable "allowed_ip_ranges" {
   description = "List of IP ranges that can access the Key Vault"
   type        = list(string)
-  default     = []  # Empty by default, should be provided in tfvars
+  default     = [] # Empty by default, should be provided in tfvars
 }
 
 variable "environment_suffix" {
@@ -44,7 +44,7 @@ variable "environment_suffix" {
 variable "unique_suffix" {
   description = "A unique suffix to add to globally unique resource names"
   type        = string
-  default     = "23xyz"  # Change this for each deployment
+  default     = "23xyz" # Change this for each deployment
 }
 
 variable "key_vault_name" {
